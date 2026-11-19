@@ -151,6 +151,12 @@ kbd {
   background: #9bbdff;
 }
 
+#restart-btn:disabled {
+  background: #3a3a5a;
+  color: #555570;
+  cursor: not-allowed;
+}
+
 /* ---- Tabla de récords ---- */
 #scoreboard {
   list-style: none;

@@ -41,8 +41,7 @@ const overlayScore = document.getElementById('overlay-score');
 const restartBtn = document.getElementById('restart-btn');
 
 let board, current, next, score, lines, level, paused, gameOver, lastTime, dropAccum, dropInterval, animId;
-let maxCombo = 0;
-let maxLinesInGame = 0;
+let maxSingleClear = 0;
 
 function createBoard() {
   return Array.from({ length: ROWS }, () => new Array(COLS).fill(0));
@@ -110,7 +109,7 @@ function clearLines() {
     score += (LINE_SCORES[cleared] || 0) * level;
     level = Math.floor(lines / 10) + 1;
     dropInterval = Math.max(100, 1000 - (level - 1) * 90);
-    maxLinesInGame = Math.max(maxLinesInGame, cleared);
+    maxSingleClear = Math.max(maxSingleClear, cleared);
     updateHUD();
   }
 }
@@ -233,9 +232,11 @@ function endGame() {
   if (isTopFive(score)) {
     playerNameInput.value = '';
     saveForm.classList.remove('hidden');
+    restartBtn.disabled = true;
     playerNameInput.focus();
   } else {
     saveForm.classList.add('hidden');
+    restartBtn.disabled = false;
   }
 }
 
@@ -277,15 +278,16 @@ function loadScores() {
   }
 }
 
-function saveScore(name, scoreVal, combo, linesVal) {
+function saveScore(name, scoreVal, maxClear, linesVal) {
   const scores = loadScores();
-  scores.push({ name: name.trim() || 'AAA', score: scoreVal, combo, lines: linesVal });
+  scores.push({ name: name.trim() || 'AAA', score: scoreVal, maxClear, lines: linesVal });
   scores.sort((a, b) => b.score - a.score);
   scores.splice(5);
   try {
     localStorage.setItem('tetris_scores', JSON.stringify(scores));
   } catch (e) { /* ignore */ }
-  return scores;
+  const idx = scores.findIndex(e => e.score === scoreVal && e.name === (name.trim() || 'AAA'));
+  return idx;
 }
 
 function resetScores() {
@@ -295,7 +297,7 @@ function resetScores() {
   renderScoreboard();
 }
 
-function renderScoreboard(highlightScore) {
+function renderScoreboard(highlightIndex) {
   const scoreboardEl = document.getElementById('scoreboard');
   const scores = loadScores();
   scoreboardEl.innerHTML = '';
@@ -309,7 +311,7 @@ function renderScoreboard(highlightScore) {
   scores.forEach((entry, i) => {
     const li = document.createElement('li');
     li.className = 'score-entry';
-    if (highlightScore !== undefined && entry.score === highlightScore) {
+    if (highlightIndex !== undefined && i === highlightIndex) {
       li.classList.add('highlight');
     }
     const nameSpan = document.createElement('span');
@@ -327,7 +329,7 @@ function renderScoreboard(highlightScore) {
 function isTopFive(scoreVal) {
   const scores = loadScores();
   if (scores.length < 5) return true;
-  return scoreVal > scores[scores.length - 1].score;
+  return scoreVal >= scores[scores.length - 1].score;
 }
 
 function init() {
@@ -339,14 +341,14 @@ function init() {
   gameOver = false;
   dropInterval = 1000;
   dropAccum = 0;
-  maxCombo = 0;
-  maxLinesInGame = 0;
+  maxSingleClear = 0;
   lastTime = performance.now();
   next = randomPiece();
   spawn();
   updateHUD();
   overlay.classList.add('hidden');
   document.getElementById('save-score-form').classList.add('hidden');
+  restartBtn.disabled = false;
   cancelAnimationFrame(animId);
   animId = requestAnimationFrame(loop);
 }
@@ -381,9 +383,10 @@ restartBtn.addEventListener('click', init);
 document.getElementById('save-score-btn').addEventListener('click', () => {
   const playerNameInput = document.getElementById('player-name');
   const name = playerNameInput.value.trim() || 'AAA';
-  saveScore(name, score, maxLinesInGame, lines);
+  const idx = saveScore(name, score, maxSingleClear, lines);
   document.getElementById('save-score-form').classList.add('hidden');
-  renderScoreboard(score);
+  restartBtn.disabled = false;
+  renderScoreboard(idx);
 });
 
 document.getElementById('player-name').addEventListener('keydown', e => {
