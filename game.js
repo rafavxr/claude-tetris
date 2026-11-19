@@ -41,6 +41,7 @@ const overlayScore = document.getElementById('overlay-score');
 const restartBtn = document.getElementById('restart-btn');
 
 let board, current, next, score, lines, level, paused, gameOver, lastTime, dropAccum, dropInterval, animId;
+let maxSingleClear = 0;
 
 function createBoard() {
   return Array.from({ length: ROWS }, () => new Array(COLS).fill(0));
@@ -108,6 +109,7 @@ function clearLines() {
     score += (LINE_SCORES[cleared] || 0) * level;
     level = Math.floor(lines / 10) + 1;
     dropInterval = Math.max(100, 1000 - (level - 1) * 90);
+    maxSingleClear = Math.max(maxSingleClear, cleared);
     updateHUD();
   }
 }
@@ -224,6 +226,18 @@ function endGame() {
   overlayTitle.textContent = 'GAME OVER';
   overlayScore.textContent = `Puntuación: ${score.toLocaleString()}`;
   overlay.classList.remove('hidden');
+  renderScoreboard();
+  const saveForm = document.getElementById('save-score-form');
+  const playerNameInput = document.getElementById('player-name');
+  if (isTopFive(score)) {
+    playerNameInput.value = '';
+    saveForm.classList.remove('hidden');
+    restartBtn.disabled = true;
+    playerNameInput.focus();
+  } else {
+    saveForm.classList.add('hidden');
+    restartBtn.disabled = false;
+  }
 }
 
 function togglePause() {
@@ -256,6 +270,68 @@ function loop(ts) {
   animId = requestAnimationFrame(loop);
 }
 
+function loadScores() {
+  try {
+    return JSON.parse(localStorage.getItem('tetris_scores') || '[]');
+  } catch (e) {
+    return [];
+  }
+}
+
+function saveScore(name, scoreVal, maxClear, linesVal) {
+  const scores = loadScores();
+  scores.push({ name: name.trim() || 'AAA', score: scoreVal, maxClear, lines: linesVal });
+  scores.sort((a, b) => b.score - a.score);
+  scores.splice(5);
+  try {
+    localStorage.setItem('tetris_scores', JSON.stringify(scores));
+  } catch (e) { /* ignore */ }
+  const idx = scores.findIndex(e => e.score === scoreVal && e.name === (name.trim() || 'AAA'));
+  return idx;
+}
+
+function resetScores() {
+  try {
+    localStorage.removeItem('tetris_scores');
+  } catch (e) { /* ignore */ }
+  renderScoreboard();
+}
+
+function renderScoreboard(highlightIndex) {
+  const scoreboardEl = document.getElementById('scoreboard');
+  const scores = loadScores();
+  scoreboardEl.innerHTML = '';
+  if (scores.length === 0) {
+    const li = document.createElement('li');
+    li.className = 'score-entry';
+    li.textContent = '—';
+    scoreboardEl.appendChild(li);
+    return;
+  }
+  scores.forEach((entry, i) => {
+    const li = document.createElement('li');
+    li.className = 'score-entry';
+    if (highlightIndex !== undefined && i === highlightIndex) {
+      li.classList.add('highlight');
+    }
+    const nameSpan = document.createElement('span');
+    nameSpan.className = 'entry-name';
+    nameSpan.textContent = `${i + 1}. ${entry.name}`;
+    const scoreSpan = document.createElement('span');
+    scoreSpan.className = 'entry-score';
+    scoreSpan.textContent = entry.score.toLocaleString();
+    li.appendChild(nameSpan);
+    li.appendChild(scoreSpan);
+    scoreboardEl.appendChild(li);
+  });
+}
+
+function isTopFive(scoreVal) {
+  const scores = loadScores();
+  if (scores.length < 5) return true;
+  return scoreVal >= scores[scores.length - 1].score;
+}
+
 function init() {
   board = createBoard();
   score = 0;
@@ -265,11 +341,14 @@ function init() {
   gameOver = false;
   dropInterval = 1000;
   dropAccum = 0;
+  maxSingleClear = 0;
   lastTime = performance.now();
   next = randomPiece();
   spawn();
   updateHUD();
   overlay.classList.add('hidden');
+  document.getElementById('save-score-form').classList.add('hidden');
+  restartBtn.disabled = false;
   cancelAnimationFrame(animId);
   animId = requestAnimationFrame(loop);
 }
@@ -301,4 +380,24 @@ document.addEventListener('keydown', e => {
 
 restartBtn.addEventListener('click', init);
 
+document.getElementById('save-score-btn').addEventListener('click', () => {
+  const playerNameInput = document.getElementById('player-name');
+  const name = playerNameInput.value.trim() || 'AAA';
+  const idx = saveScore(name, score, maxSingleClear, lines);
+  document.getElementById('save-score-form').classList.add('hidden');
+  restartBtn.disabled = false;
+  renderScoreboard(idx);
+});
+
+document.getElementById('player-name').addEventListener('keydown', e => {
+  if (e.code === 'Enter') {
+    document.getElementById('save-score-btn').click();
+  }
+});
+
+document.getElementById('reset-scores-btn').addEventListener('click', () => {
+  resetScores();
+});
+
 init();
+renderScoreboard();
