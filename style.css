@@ -1,3 +1,10 @@
+:root {
+  --bg-body: #0f0f17;
+  --bg-canvas: #1a1a25;
+  --grid-color: #22222e;
+  --text-hud: #e0e0e0;
+}
+
 *, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
@@ -5,8 +12,8 @@
 }
 
 body {
-  background: #0f0f17;
-  color: #e0e0e0;
+  background: var(--bg-body);
+  color: var(--text-hud);
   font-family: system-ui, -apple-system, sans-serif;
   display: flex;
   align-items: center;
@@ -28,7 +35,7 @@ body {
 #board {
   display: block;
   border: 1px solid #2a2a3a;
-  background: #1a1a25;
+  background: var(--bg-canvas);
   border-radius: 4px;
   box-shadow: 0 0 40px rgba(0, 0, 0, 0.6);
 }
@@ -66,7 +73,7 @@ body {
 #next-canvas {
   display: block;
   border: 1px solid #2a2a3a;
-  background: #1a1a25;
+  background: var(--bg-canvas);
   border-radius: 4px;
 }
 
@@ -149,4 +156,74 @@ kbd {
 
 #restart-btn:hover {
   background: #9bbdff;
+}
+
+/* ---- Selector de temas ---- */
+.theme-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.theme-btn {
+  background: #1e1e2e;
+  color: #aaa;
+  border: 1px solid #3a3a5a;
+  border-radius: 4px;
+  padding: 5px 4px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.theme-btn:hover {
+  background: #2a2a3e;
+  color: #ccc;
+}
+
+.theme-btn.active {
+  background: #7aa2f7;
+  border-color: #7aa2f7;
+  color: #0f0f17;
+}
+
+/* Ajuste de texto para tema pastel (fondo claro) */
+body.theme-pastel {
+  color: #333;
+}
+
+body.theme-pastel .label {
+  color: #888;
+}
+
+body.theme-pastel .value {
+  color: #5566cc;
+}
+
+body.theme-pastel kbd {
+  background: #e0d8f0;
+  border-color: #c0b8d8;
+  color: #444;
+}
+
+body.theme-pastel .controls li {
+  color: #555;
+}
+
+body.theme-pastel .theme-btn {
+  background: #e8e0f0;
+  border-color: #c0b8d8;
+  color: #444;
+}
+
+body.theme-pastel .theme-btn:hover {
+  background: #d8d0e8;
+}
+
+body.theme-pastel .theme-btn.active {
+  background: #5566cc;
+  border-color: #5566cc;
+  color: #fff;
 }
