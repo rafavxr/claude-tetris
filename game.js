@@ -4,16 +4,20 @@ const COLS = 10;
 const ROWS = 20;
 const BLOCK = 30;
 
-const COLORS = [
-  null,
-  '#4dd0e1', // I - cyan
-  '#ffd54f', // O - yellow
-  '#ba68c8', // T - purple
-  '#81c784', // S - green
-  '#e57373', // Z - red
-  '#7986cb', // J - indigo
-  '#ffb74d', // L - orange
-];
+const THEME_COLORS = {
+  retro:  [null,'#4dd0e1','#ffd54f','#ba68c8','#81c784','#e57373','#7986cb','#ffb74d'],
+  neon:   [null,'#00f5ff','#ffff00','#ff00ff','#00ff88','#ff3355','#4488ff','#ff8800'],
+  pastel: [null,'#b2ebf2','#fff9c4','#e1bee7','#c8e6c9','#ffcdd2','#c5cae9','#ffe0b2'],
+  pixel:  [null,'#4dd0e1','#ffd54f','#ba68c8','#81c784','#e57373','#7986cb','#ffb74d'],
+};
+const THEME_BG = {
+  retro:  { body: '#0f0f17', canvas: '#1a1a25', grid: '#22222e' },
+  neon:   { body: '#000008', canvas: '#000510', grid: '#001122' },
+  pastel: { body: '#f5f0ff', canvas: '#faf7ff', grid: '#e8e0f0' },
+  pixel:  { body: '#1a1218', canvas: '#261e22', grid: '#2a2228' },
+};
+
+let currentTheme = 'retro';
 
 const PIECES = [
   null,
@@ -156,20 +160,70 @@ function updateHUD() {
   levelEl.textContent = level;
 }
 
+function loadTheme() {
+  const stored = localStorage.getItem('tetris_theme');
+  return (stored && THEME_BG[stored]) ? stored : 'retro';
+}
+function saveTheme(name) { localStorage.setItem('tetris_theme', name); }
+function applyTheme(name) {
+  currentTheme = name;
+  saveTheme(name);
+  const bg = THEME_BG[name];
+  document.documentElement.style.setProperty('--bg-body', bg.body);
+  document.documentElement.style.setProperty('--bg-canvas', bg.canvas);
+  document.documentElement.style.setProperty('--grid-color', bg.grid);
+  // clase en body para ajustar texto en tema pastel
+  document.body.classList.toggle('theme-pastel', name === 'pastel');
+  // actualizar botones activos
+  document.querySelectorAll('.theme-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.theme === name);
+  });
+  // redibujar si el juego está activo
+  if (!gameOver && current) { draw(); drawNext(); }
+}
+
 function drawBlock(context, x, y, colorIndex, size, alpha) {
   if (!colorIndex) return;
-  const color = COLORS[colorIndex];
+  const colors = THEME_COLORS[currentTheme];
+  const color = colors[colorIndex];
   context.globalAlpha = alpha ?? 1;
-  context.fillStyle = color;
-  context.fillRect(x * size + 1, y * size + 1, size - 2, size - 2);
-  // highlight
-  context.fillStyle = 'rgba(255,255,255,0.12)';
-  context.fillRect(x * size + 1, y * size + 1, size - 2, 4);
+
+  if (currentTheme === 'neon') {
+    // glow effect
+    context.shadowColor = color;
+    context.shadowBlur = 8;
+    context.fillStyle = color;
+    context.fillRect(x * size + 2, y * size + 2, size - 4, size - 4);
+    context.shadowBlur = 0;
+    context.shadowColor = 'transparent';
+  } else if (currentTheme === 'pastel') {
+    // bloques suaves con highlight claro
+    context.fillStyle = color;
+    context.fillRect(x * size + 2, y * size + 2, size - 4, size - 4);
+    context.fillStyle = 'rgba(255,255,255,0.4)';
+    context.fillRect(x * size + 2, y * size + 2, size - 4, 4);
+  } else if (currentTheme === 'pixel') {
+    // textura de píxel: bloque con patrón de puntos
+    context.fillStyle = color;
+    context.fillRect(x * size + 1, y * size + 1, size - 2, size - 2);
+    context.fillStyle = 'rgba(0,0,0,0.25)';
+    for (let py = y * size + 3; py < (y + 1) * size - 2; py += 6)
+      for (let px = x * size + 3; px < (x + 1) * size - 2; px += 6)
+        context.fillRect(px, py, 2, 2);
+    context.fillStyle = 'rgba(255,255,255,0.08)';
+    context.fillRect(x * size + 1, y * size + 1, size - 2, 3);
+  } else {
+    // retro (default)
+    context.fillStyle = color;
+    context.fillRect(x * size + 1, y * size + 1, size - 2, size - 2);
+    context.fillStyle = 'rgba(255,255,255,0.12)';
+    context.fillRect(x * size + 1, y * size + 1, size - 2, 4);
+  }
   context.globalAlpha = 1;
 }
 
 function drawGrid() {
-  ctx.strokeStyle = '#22222e';
+  ctx.strokeStyle = THEME_BG[currentTheme].grid;
   ctx.lineWidth = 0.5;
   for (let c = 1; c < COLS; c++) {
     ctx.beginPath();
@@ -300,5 +354,13 @@ document.addEventListener('keydown', e => {
 });
 
 restartBtn.addEventListener('click', init);
+
+// Inicializar tema antes del primer init
+currentTheme = loadTheme();
+applyTheme(currentTheme);
+
+document.querySelectorAll('.theme-btn').forEach(btn => {
+  btn.addEventListener('click', () => applyTheme(btn.dataset.theme));
+});
 
 init();
