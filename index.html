@@ -40,6 +40,12 @@
             <li><kbd>P</kbd> pausa</li>
           </ul>
         </div>
+
+        <div class="panel-section" id="scoreboard-section">
+          <span class="label">RÉCORDS</span>
+          <ol id="scoreboard"></ol>
+          <button id="reset-scores-btn">Borrar récords</button>
+        </div>
       </aside>
     </div>
 
@@ -47,6 +53,10 @@
       <div class="overlay-box">
         <p id="overlay-title">GAME OVER</p>
         <p id="overlay-score"></p>
+        <div id="save-score-form" class="hidden">
+          <input type="text" id="player-name" maxlength="12" placeholder="Tu nombre" />
+          <button id="save-score-btn">Guardar</button>
+        </div>
         <button id="restart-btn">Reiniciar</button>
       </div>
     </div>
